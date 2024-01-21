@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -13,6 +14,7 @@ import (
 )
 
 var random *rand.Rand
+var muRand sync.Mutex
 
 func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -31,8 +33,8 @@ func (l letterCounter) name() string {
 
 func (l letterCounter) count(input string) int {
 	result := 0
+	time.Sleep(time.Duration(getRand(5)) * time.Second)
 	fmt.Println(l.name(), "working...")
-	time.Sleep(time.Duration(random.Intn(5)) * time.Second)
 	for _, char := range input {
 		if unicode.IsLetter(char) {
 			result++
@@ -49,8 +51,8 @@ func (n numberCounter) name() string {
 
 func (n numberCounter) count(input string) int {
 	result := 0
+	time.Sleep(time.Duration(getRand(5)) * time.Second)
 	fmt.Println(n.name(), "working...")
-	time.Sleep(time.Duration(random.Intn(5)) * time.Second)
 	for _, char := range input {
 		if unicode.IsNumber(char) {
 			result++
@@ -67,14 +69,20 @@ func (s symbolCounter) name() string {
 
 func (s symbolCounter) count(input string) int {
 	result := 0
+	time.Sleep(time.Duration(getRand(5)) * time.Second)
 	fmt.Println(s.name(), "working...")
-	time.Sleep(time.Duration(random.Intn(5)) * time.Second)
 	for _, char := range input {
 		if !unicode.IsLetter(char) && !unicode.IsNumber(char) {
 			result++
 		}
 	}
 	return result
+}
+
+func getRand(n int) int {
+	muRand.Lock()
+	defer muRand.Unlock()
+	return random.Intn(n)
 }
 
 func doAnalysis(data string, counters ...counter) map[string]int {
@@ -84,10 +92,22 @@ func doAnalysis(data string, counters ...counter) map[string]int {
 	// capture the length of the words in the data
 	analysis["words"] = len(strings.Fields(data))
 
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
 	// loop over the counters and use their name as the key
 	for _, c := range counters {
-		analysis[c.name()] = c.count(data)
+		wg.Add(1)
+		go func(c counter) {
+			defer wg.Done()
+			count := c.count(data)
+			mu.Lock()
+			defer mu.Unlock()
+			analysis[c.name()] = count
+		}(c)
 	}
+
+	wg.Wait()
 
 	// return the map
 	return analysis

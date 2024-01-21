@@ -4,16 +4,23 @@ package main
 import "testing"
 
 func TestSum(t *testing.T) {
-	// var tests = []struct {
-	// 	name  string
-	// 	input []int
-	// 	want  int
-	// }{
-	// 	{"one", []int{1}, 1},
-	// 	{"two", []int{1, -2}, -1},
-	// 	{"three", []int{1, 2, 3}, 6},
-	// }
+	var tests = []struct {
+		name  string
+		input []int
+		want  int
+	}{
+		{"one", []int{1}, 1},
+		{"two", []int{1, -2}, -1},
+		{"three", []int{1, 2, 3}, 6},
+	}
 
 	// range over the tests and run them as subtests
-	//
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := sum(tc.input...)
+			if actual != tc.want {
+				t.Errorf("actual %v != want %v", actual, tc.want)
+			}
+		})
+	}
 }
